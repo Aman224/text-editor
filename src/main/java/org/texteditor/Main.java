@@ -14,17 +14,20 @@ public class Main {
     private static int columns = 10;
 
     public static void main(String[] args) throws IOException {
-        System.out.println("TEXT EDITOR");
-
         enableRawMode();
+        init();
 
         while (true) {
             refreshScreen();
-
             int key = readKey();
-
             handleKeyRead(key);
         }
+    }
+
+    private static void init() {
+        LibC.WinSize winSize = getWindowSize();
+        columns = winSize.ws_col;
+        rows = winSize.ws_row;
     }
 
     private static int readKey() throws IOException {
@@ -64,6 +67,20 @@ public class Main {
     private static void refreshScreen() {
         System.out.print("\033[2J");
         System.out.print("\033[H");
+
+        for (int i = 0; i < rows - 1; i++) {
+            System.out.print("~\r\n");
+        }
+
+        String message = "Text Editor v0.1";
+
+        System.out.print("\033[7m" + message + " ".repeat(Math.max(0, columns - message.length())) + "\033[0m");
+    }
+
+    private static LibC.WinSize getWindowSize() {
+        LibC.WinSize winSize = new LibC.WinSize();
+        LibC.INSTANCE.ioctl(LibC.SYSTEM_OUT_FD, LibC.TI0CGWINSZ, winSize);
+        return winSize;
     }
 
     private static void cleanup() {
@@ -110,7 +127,23 @@ interface LibC extends Library {
         }
     }
 
+    @Structure.FieldOrder(value = {"ws_row", "ws_col", "ws_xpixel", "ws_ypixel"})
+    class WinSize extends Structure {
+        public int ws_row, ws_col, ws_xpixel, ws_ypixel;
+
+        @Override
+        public String toString() {
+            return "WinSize {" +
+                    ", ws_row=" + ws_row +
+                    ", ws_col=" + ws_col +
+                    ", ws_xpixel=" + ws_xpixel +
+                    ", ws_ypixel=" + ws_ypixel;
+        }
+    }
+
     int tcgetattr(int fd, Termios termios);
 
     int tcsetattr(int fd, int optional_actions, Termios termios);
+
+    int ioctl(int fd, int opt, WinSize winSize);
 }
