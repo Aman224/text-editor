@@ -10,22 +10,35 @@ import java.util.Arrays;
 
 public class Main {
     private static LibC.Termios defaultAttributes;
+    private static int rows = 10;
+    private static int columns = 10;
 
     public static void main(String[] args) throws IOException {
-        System.out.print("TEXT EDITOR");
+        System.out.println("TEXT EDITOR");
 
         enableRawMode();
 
         while (true) {
-            int key = System.in.read();
+            refreshScreen();
 
-            if (key == 'q') {
-                resetAttributes();
-                System.exit(0);
-            }
+            int key = readKey();
 
-            System.out.print((char) key + "(" + key + ")\r\n");
+            handleKeyRead(key);
         }
+    }
+
+    private static int readKey() throws IOException {
+        return System.in.read();
+    }
+
+    private static void handleKeyRead(int key) {
+        if (key == 'q') {
+            resetAttributes();
+            cleanup();
+            System.exit(0);
+        }
+
+        System.out.print((char) key);
     }
 
     private static void enableRawMode() {
@@ -46,6 +59,16 @@ public class Main {
         termios.c_cc[LibC.VTIME] = 1;
 
         LibC.INSTANCE.tcsetattr(LibC.SYSTEM_OUT_FD, LibC.TCSA_FLUSH, termios);
+    }
+
+    private static void refreshScreen() {
+        System.out.print("\033[2J");
+        System.out.print("\033[H");
+    }
+
+    private static void cleanup() {
+        System.out.print("\033[2J");
+        System.out.print("\033[H");
     }
 
     private static void resetAttributes() {
