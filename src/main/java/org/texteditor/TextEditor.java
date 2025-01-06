@@ -6,9 +6,10 @@ import com.sun.jna.Structure;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Set;
 
 
-public class Main {
+public class TextEditor {
     private static LibC.Termios defaultAttributes;
 
     private static final int ARROW_UP = 1000;
@@ -20,6 +21,9 @@ public class Main {
     private static final int HOME = 1006;
     private static final int END = 1007;
     private static final int DEL = 1008;
+
+    private static final Set<Integer> positioningKeys = Set.of(ARROW_UP, ARROW_DOWN, ARROW_RIGHT, ARROW_LEFT, HOME, END);
+    private static int cursorX = 0, cursorY = 0;
 
     private static int rows = 10;
     private static int columns = 10;
@@ -49,7 +53,7 @@ public class Main {
         }
 
         int secondKey = System.in.read();
-        if (secondKey != '[' && secondKey != 'O') {
+        if (secondKey != '[') {
             return secondKey;
         }
 
@@ -82,11 +86,38 @@ public class Main {
 
     private static void handleKeyRead(int key) {
         if (key == 'q') {
-            resetAttributes();
-            cleanup();
-            System.exit(0);
-        } else {
-            System.out.print((char) key + " -> " + key + "\r\n");
+            exit();
+        } else if (positioningKeys.contains(key)) {
+            moveCursor(key);
+        }
+
+//        System.out.print((char) key + " -> " + key + "\r\n");
+    }
+
+    private static void moveCursor(int key) {
+        switch (key) {
+            case ARROW_UP -> {
+                if (cursorY > 0) {
+                    cursorY--;
+                }
+            }
+            case ARROW_DOWN -> {
+                if (cursorY < rows - 1) {
+                    cursorY++;
+                }
+            }
+            case ARROW_LEFT -> {
+                if (cursorX > 0) {
+                    cursorX--;
+                }
+            }
+            case ARROW_RIGHT -> {
+                if (cursorX < columns - 1) {
+                    cursorX++;
+                }
+            }
+            case HOME -> cursorX = 0;
+            case END -> cursorX = columns - 1;
         }
     }
 
@@ -124,7 +155,7 @@ public class Main {
                 .append(" ".repeat(Math.max(0, columns - message.length())))
                 .append("\033[0m");
 
-        builder.append("\033[H");
+        builder.append(String.format("\033[%d;%dH", cursorY + 1, cursorX + 1));
         System.out.print(builder);
     }
 
@@ -138,6 +169,12 @@ public class Main {
         }
 
         return winSize;
+    }
+
+    private static void exit() {
+        resetAttributes();
+        cleanup();
+        System.exit(0);
     }
 
     private static void cleanup() {
