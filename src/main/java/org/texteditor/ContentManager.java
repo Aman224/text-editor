@@ -131,8 +131,8 @@ public class ContentManager {
     private void scroll() {
         if (cursorY >= rows + offsetY) {
             offsetY = cursorY - rows + 1;
-        } else if (cursorY < offsetY && offsetY > 0) {
-            offsetY = offsetY - 1;
+        } else if (cursorY < offsetY) {
+            offsetY = cursorY;
         }
     }
 
