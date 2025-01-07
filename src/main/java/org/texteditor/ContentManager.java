@@ -42,6 +42,7 @@ public class ContentManager {
 
     public void render() throws IOException {
         while (true) {
+            scroll();
             refreshScreen();
             int key = readKey();
 
@@ -127,6 +128,14 @@ public class ContentManager {
         System.out.print(builder);
     }
 
+    private void scroll() {
+        if (cursorY >= rows + offsetY) {
+            offsetY = cursorY - rows + 1;
+        } else if (cursorY < offsetY && offsetY > 0) {
+            offsetY = offsetY - 1;
+        }
+    }
+
     private void resetCursorAndClear(StringBuilder builder) {
         builder.append("\033[2J");
         builder.append("\033[H");
@@ -134,10 +143,12 @@ public class ContentManager {
 
     private void renderContent(StringBuilder builder) {
         for (int i = 0; i < rows; i++) {
-            if (i >= content.size()) {
+            int contentI = offsetY + i;
+
+            if (contentI >= content.size()) {
                 builder.append("~");
             } else {
-                builder.append(content.get(i));
+                builder.append(content.get(contentI));
             }
             builder.append("\033[K\r\n");
         }
@@ -152,7 +163,7 @@ public class ContentManager {
     }
 
     private void positionCursor(StringBuilder builder) {
-        builder.append(String.format("\033[%d;%dH", cursorY + 1, cursorX + 1));
+        builder.append(String.format("\033[%d;%dH", cursorY - offsetY + 1, cursorX + 1));
     }
 
     private void moveCursor(int key) {
