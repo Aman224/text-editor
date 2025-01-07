@@ -4,10 +4,16 @@ import com.sun.jna.Library;
 import com.sun.jna.Native;
 import com.sun.jna.Structure;
 
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.Set;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Stream;
+
+import java.io.IOException;
 
 public class TextEditor {
     private static LibC.Termios defaultAttributes;
@@ -22,15 +28,19 @@ public class TextEditor {
     private static final int END = 1007;
     private static final int DEL = 1008;
 
-    private static final Set<Integer> positioningKeys = Set.of(ARROW_UP, ARROW_DOWN, ARROW_RIGHT, ARROW_LEFT, HOME, END);
+    private static final Set<Integer> positioningKeys =
+            Set.of(ARROW_UP, ARROW_DOWN, ARROW_RIGHT, ARROW_LEFT, HOME, END);
     private static int cursorX = 0, cursorY = 0;
 
     private static int rows = 10;
     private static int columns = 10;
 
+    private static List<String> content = new ArrayList<>();
+
+
     public static void main(String[] args) throws IOException {
-        enableRawMode();
         init();
+        readFile(args);
 
         while (true) {
             refreshScreen();
@@ -40,10 +50,26 @@ public class TextEditor {
     }
 
     private static void init() {
-        LibC.WinSize winSize = getWindowSize();
+        enableRawMode();
 
+        LibC.WinSize winSize = getWindowSize();
         columns = winSize.ws_col;
         rows = winSize.ws_row;
+    }
+
+    private static void readFile(String[] args) {
+        if (args.length == 1) {
+            String filename = args[0];
+            Path path = Path.of(filename);
+
+            if (Files.exists(path)) {
+                try(Stream<String> stream = Files.lines(path)) {
+                    content = stream.toList();
+                } catch (IOException ex) {
+                    System.err.print("Error reading file: " + ex.getMessage());
+                }
+            }
+        }
     }
 
     private static int readKey() throws IOException {
@@ -147,7 +173,14 @@ public class TextEditor {
         builder.append("\033[2J");
         builder.append("\033[H");
 
-        builder.append("~\r\n".repeat(Math.max(0, rows - 1)));
+        for (int i = 0; i < rows - 1; i++) {
+            if (i >= content.size()) {
+                builder.append("~");
+            } else {
+                builder.append(content.get(i));
+            }
+            builder.append("\033[K\r\n");
+        }
 
         String message = "Text Editor v0.1";
         builder.append("\033[7m")
