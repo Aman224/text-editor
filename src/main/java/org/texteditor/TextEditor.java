@@ -54,7 +54,7 @@ public class TextEditor {
 
         LibC.WinSize winSize = getWindowSize();
         columns = winSize.ws_col;
-        rows = winSize.ws_row;
+        rows = winSize.ws_row - 1;
     }
 
     private static void readFile(String[] args) {
@@ -116,8 +116,6 @@ public class TextEditor {
         } else if (positioningKeys.contains(key)) {
             moveCursor(key);
         }
-
-//        System.out.print((char) key + " -> " + key + "\r\n");
     }
 
     private static void moveCursor(int key) {
@@ -173,7 +171,7 @@ public class TextEditor {
         builder.append("\033[2J");
         builder.append("\033[H");
 
-        for (int i = 0; i < rows - 1; i++) {
+        for (int i = 0; i < rows; i++) {
             if (i >= content.size()) {
                 builder.append("~");
             } else {
