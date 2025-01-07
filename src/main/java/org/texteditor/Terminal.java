@@ -19,7 +19,6 @@ public class Terminal {
         LibC.WinSize winSize = getWinSize();
         this.rows = winSize.ws_row - 1;
         this.columns = winSize.ws_col;
-
     }
 
     public void enableRawMode() {

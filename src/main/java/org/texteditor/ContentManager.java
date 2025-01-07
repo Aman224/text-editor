@@ -24,7 +24,7 @@ public class ContentManager {
     private final Set<Integer> positioningKeys =
             Set.of(ARROW_UP, ARROW_DOWN, ARROW_RIGHT, ARROW_LEFT, HOME, END);
 
-    private int cursorX = 0, cursorY = 0;
+    private int cursorX = 0, cursorY = 0, offsetY = 0;
     private int rows = 10, columns = 10;
 
 
@@ -119,9 +119,20 @@ public class ContentManager {
     private void refreshScreen() {
         StringBuilder builder = new StringBuilder();
 
+        resetCursorAndClear(builder);
+        renderContent(builder);
+        renderStatusBar(builder);
+        positionCursor(builder);
+
+        System.out.print(builder);
+    }
+
+    private void resetCursorAndClear(StringBuilder builder) {
         builder.append("\033[2J");
         builder.append("\033[H");
+    }
 
+    private void renderContent(StringBuilder builder) {
         for (int i = 0; i < rows; i++) {
             if (i >= content.size()) {
                 builder.append("~");
@@ -130,15 +141,18 @@ public class ContentManager {
             }
             builder.append("\033[K\r\n");
         }
+    }
 
-        String message = "Text Editor v0.1";
+    private void renderStatusBar(StringBuilder builder) {
+        String message = "Text Editor v0.1 [Rows: " + rows + ", Columns: " + columns + " X: " + cursorX + " Y: " + cursorY + " offsetY: " + offsetY + "]";
         builder.append("\033[7m")
                 .append(message)
                 .append(" ".repeat(Math.max(0, columns - message.length())))
                 .append("\033[0m");
+    }
 
+    private void positionCursor(StringBuilder builder) {
         builder.append(String.format("\033[%d;%dH", cursorY + 1, cursorX + 1));
-        System.out.print(builder);
     }
 
     private void moveCursor(int key) {
@@ -149,7 +163,7 @@ public class ContentManager {
                 }
             }
             case ARROW_DOWN -> {
-                if (cursorY < rows - 1) {
+                if (cursorY < content.size()) {
                     cursorY++;
                 }
             }
