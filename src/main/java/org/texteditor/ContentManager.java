@@ -201,6 +201,8 @@ public class ContentManager {
     }
 
     private void moveCursor(int key) {
+        String currentLine = currentLIne();
+
         switch (key) {
             case ARROW_UP -> {
                 if (cursorY > 0) {
@@ -218,7 +220,7 @@ public class ContentManager {
                 }
             }
             case ARROW_RIGHT -> {
-                if (cursorX < content.get(cursorY).length() - 1) {
+                if (currentLine != null && cursorX < currentLine.length()) {
                     cursorX++;
                 }
             }
@@ -234,7 +236,24 @@ public class ContentManager {
                 }
             }
             case HOME -> cursorX = 0;
-            case END -> cursorX = columns - 1;
+            case END -> {
+                if (currentLine != null) {
+                    cursorX = currentLine.length();
+                }
+            }
+        }
+
+        String newLine = currentLIne();
+        if (newLine != null && cursorX > newLine.length()) {
+            cursorX = newLine.length();
+        }
+    }
+
+    private String currentLIne() {
+        if (cursorY < content.size()) {
+            return content.get(cursorY);
+        } else {
+            return null;
         }
     }
 
