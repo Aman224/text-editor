@@ -14,6 +14,7 @@ public class TextEditor {
             contentManager.render();
         } catch (Exception ex) {
             System.err.println("Error: " + ex);
+            ex.printStackTrace();
         }
 
         terminal.reset();

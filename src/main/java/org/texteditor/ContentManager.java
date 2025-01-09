@@ -22,7 +22,7 @@ public class ContentManager {
     private final int DEL = 1008;
 
     private final Set<Integer> positioningKeys =
-            Set.of(ARROW_UP, ARROW_DOWN, ARROW_RIGHT, ARROW_LEFT, HOME, END);
+            Set.of(ARROW_UP, ARROW_DOWN, ARROW_RIGHT, ARROW_LEFT, HOME, END, PAGE_UP, PAGE_DOWN);
 
     private int cursorX = 0, cursorY = 0, offsetY = 0;
     private int rows = 10, columns = 10;
@@ -208,8 +208,31 @@ public class ContentManager {
                     cursorX++;
                 }
             }
+            case PAGE_UP, PAGE_DOWN -> {
+                if (key == PAGE_UP) {
+                    moveCursorToTop();
+                } else {
+                    moveCursorToBottom();
+                }
+
+                for (int i = 0; i < rows; i++) {
+                    moveCursor(key == PAGE_UP ? ARROW_UP : ARROW_DOWN);
+                }
+            }
             case HOME -> cursorX = 0;
             case END -> cursorX = columns - 1;
+        }
+    }
+
+    private void moveCursorToTop() {
+        cursorY = offsetY;
+    }
+
+    private void moveCursorToBottom() {
+        cursorY = offsetY + rows - 1;
+
+        if (cursorY > content.size()) {
+            cursorY = content.size();
         }
     }
 
