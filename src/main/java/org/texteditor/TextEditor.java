@@ -1,7 +1,5 @@
 package org.texteditor;
 
-import java.io.IOException;
-
 public class TextEditor {
 
     public static void main(String[] args) {
@@ -16,8 +14,8 @@ public class TextEditor {
             contentManager.render();
         } catch (Exception ex) {
             System.err.println("Error: " + ex);
-        } finally {
-            terminal.reset();
         }
+
+        terminal.reset();
     }
 }

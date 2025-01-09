@@ -80,35 +80,55 @@ public class ContentManager {
         }
 
         int secondKey = System.in.read();
-        if (secondKey != '[') {
+        if (secondKey != '[' && secondKey != 'O') {
             return secondKey;
         }
 
         int thirdKey = System.in.read();
 
-        return switch (thirdKey) {
-            case 'A' -> ARROW_UP;
-            case 'B' -> ARROW_DOWN;
-            case 'C' -> ARROW_RIGHT;
-            case 'D' -> ARROW_LEFT;
-            case 'H' -> HOME;
-            case 'F' -> END;
-            case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' -> {
-                int fourthKey = System.in.read();
-                if (fourthKey != '~') {
-                    yield fourthKey;
+        if (secondKey == '[') {
+            return switch (thirdKey) {
+                case 'A' -> ARROW_UP;
+                case 'B' -> ARROW_DOWN;
+                case 'C' -> ARROW_RIGHT;
+                case 'D' -> ARROW_LEFT;
+                case 'H' -> HOME;
+                case 'F' -> END;
+                case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' -> {
+                    int fourthKey = System.in.read();
+                    if (fourthKey != '~') {
+                        yield fourthKey;
+                    }
+                    switch (thirdKey) {
+                        case '1', '7' -> {
+                            yield HOME;
+                        }
+                        case '3' -> {
+                            yield DEL;
+                        }
+                        case '4', '8' -> {
+                            yield END;
+                        }
+                        case '5' -> {
+                            yield PAGE_UP;
+                        }
+                        case '6' -> {
+                            yield PAGE_DOWN;
+                        }
+                        default -> {
+                            yield fourthKey;
+                        }
+                    }
                 }
-                switch (thirdKey) {
-                    case '1', '7' -> { yield HOME; }
-                    case '3' -> { yield DEL; }
-                    case '4', '8' -> { yield END; }
-                    case '5' -> { yield PAGE_UP; }
-                    case '6' -> { yield PAGE_DOWN; }
-                    default -> { yield fourthKey; }
-                }
-            }
-            default -> thirdKey;
-        };
+                default -> thirdKey;
+            };
+        } else {
+            return switch (thirdKey) {
+                case 'H' -> HOME;
+                case 'F' -> END;
+                default -> thirdKey;
+            };
+        }
     }
 
     private void handleKeyRead(int key) {
