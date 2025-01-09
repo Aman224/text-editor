@@ -24,7 +24,7 @@ public class ContentManager {
     private final Set<Integer> positioningKeys =
             Set.of(ARROW_UP, ARROW_DOWN, ARROW_RIGHT, ARROW_LEFT, HOME, END, PAGE_UP, PAGE_DOWN);
 
-    private int cursorX = 0, cursorY = 0, offsetY = 0;
+    private int cursorX = 0, offsetX = 0, cursorY = 0, offsetY = 0;
     private int rows = 10, columns = 10;
 
 
@@ -154,6 +154,12 @@ public class ContentManager {
         } else if (cursorY < offsetY) {
             offsetY = cursorY;
         }
+
+        if (cursorX >= columns + offsetX) {
+            offsetX = cursorX - columns + 1;
+        } else if (cursorX < offsetX) {
+            offsetX = cursorX;
+        }
     }
 
     private void resetCursorAndClear(StringBuilder builder) {
@@ -168,14 +174,22 @@ public class ContentManager {
             if (contentI >= content.size()) {
                 builder.append("~");
             } else {
-                builder.append(content.get(contentI));
+                String line = content.get(contentI);
+                int lengthToDraw = line.length() - offsetX;
+
+                if (lengthToDraw < 0) { lengthToDraw = 0; }
+                if (lengthToDraw > columns) { lengthToDraw = columns; }
+
+                if (lengthToDraw > 0) {
+                    builder.append(line, offsetX, offsetX + lengthToDraw);
+                }
             }
             builder.append("\033[K\r\n");
         }
     }
 
     private void renderStatusBar(StringBuilder builder) {
-        String message = "Text Editor v0.1 [Rows: " + rows + ", Columns: " + columns + " X: " + cursorX + " Y: " + cursorY + " offsetY: " + offsetY + "]";
+        String message = "Text Editor v0.1 [Rows: " + rows + ", Columns: " + columns + ", X: " + cursorX + ", offsetX: " + offsetX + ", Y: " + cursorY + ", offsetY: " + offsetY + "]";
         builder.append("\033[7m")
                 .append(message)
                 .append(" ".repeat(Math.max(0, columns - message.length())))
@@ -183,7 +197,7 @@ public class ContentManager {
     }
 
     private void positionCursor(StringBuilder builder) {
-        builder.append(String.format("\033[%d;%dH", cursorY - offsetY + 1, cursorX + 1));
+        builder.append(String.format("\033[%d;%dH", cursorY - offsetY + 1, cursorX - offsetX + 1));
     }
 
     private void moveCursor(int key) {
@@ -204,7 +218,7 @@ public class ContentManager {
                 }
             }
             case ARROW_RIGHT -> {
-                if (cursorX < columns - 1) {
+                if (cursorX < content.get(cursorY).length() - 1) {
                     cursorX++;
                 }
             }
