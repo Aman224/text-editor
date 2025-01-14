@@ -1,4 +1,4 @@
-package org.texteditor;
+package com.github.aman224;
 
 import com.sun.jna.Library;
 import com.sun.jna.Native;

@@ -2,7 +2,7 @@ plugins {
     id("java")
 }
 
-group = "org.texteditor"
+group = "com.github.aman224"
 version = "1.0-SNAPSHOT"
 
 repositories {
@@ -13,6 +13,9 @@ dependencies {
     testImplementation(platform("org.junit:junit-bom:5.10.0"))
     testImplementation("org.junit.jupiter:junit-jupiter")
     implementation("net.java.dev.jna:jna:5.16.0")
+    implementation(platform("org.apache.logging.log4j:log4j-bom:2.24.3"))
+    implementation("org.apache.logging.log4j:log4j-api")
+    implementation("org.apache.logging.log4j:log4j-core")
 }
 
 tasks.test {
@@ -22,8 +25,11 @@ tasks.test {
 tasks.register<Jar>("uberJar") {
     archiveClassifier = "uber"
 
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+
     manifest {
-        attributes("Main-Class" to "org.texteditor.TextEditor")
+        attributes("Main-Class" to "com.github.aman224.TextEditor")
+        attributes("Multi-Release" to "true")
     }
 
     from(sourceSets.main.get().output)

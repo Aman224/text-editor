@@ -1,4 +1,4 @@
-package org.texteditor;
+package com.github.aman224;
 
 import java.io.IOException;
 
