@@ -1,29 +1,39 @@
 package com.github.aman224;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import java.io.IOException;
 
 public class TextEditor {
+    private final Terminal terminal;
+    private final ContentManager contentManager;
 
-    private static Logger logger = LogManager.getLogger();
 
-    public static void main(String[] args) {
-        Terminal terminal = new Terminal();
-        ContentManager contentManager = new ContentManager(args);
+    public TextEditor() {
+        this.terminal = new Terminal();
+        this.contentManager = new ContentManager(terminal.getRows(), terminal.getColumns());
+    }
 
-        logger.info("Terminal in Raw Mode");
+    public void start() throws IOException {
+        while (true) {
+            contentManager.scroll();
+            contentManager.render();
+            int key = contentManager.readKey();
+            if (key == -1) {
+                break;
+            }
+            contentManager.handleInput(key);
+        }
+    }
 
+    public void init(String[] args) {
         terminal.enableRawMode();
 
-        contentManager.configureWindow(terminal.getRows(), terminal.getColumns());
-
-        try {
-            contentManager.render();
-        } catch (Exception ex) {
-            System.err.println("Error: " + ex);
-            ex.printStackTrace();
+        if (args.length == 1) {
+            contentManager.setFile(args[0]);
         }
+    }
 
+    public void reset() {
+        contentManager.cleanup();
         terminal.reset();
     }
 }

@@ -2,11 +2,17 @@ package com.github.aman224;
 
 import com.sun.jna.Library;
 import com.sun.jna.Native;
+import com.sun.jna.Platform;
 import com.sun.jna.Structure;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.util.Arrays;
 
 public class Terminal {
+    private static final Logger logger = LogManager.getLogger();
+
     private final LibC.Termios defaultAttributes;
     private final LibC.Termios termios;
 
@@ -16,44 +22,44 @@ public class Terminal {
         this.termios = getTermios();
         this.defaultAttributes = LibC.Termios.of(this.termios);
 
-        LibC.WinSize winSize = getWinSize();
+        LibC.Winsize winSize = getWinsize();
         this.rows = winSize.ws_row - 1;
         this.columns = winSize.ws_col;
     }
 
     public void enableRawMode() {
-        termios.c_lflag &= ~(LibC.ECHO | LibC.ICANON | LibC.IEXTEN | LibC.ISIG);
-        termios.c_iflag &= ~(LibC.IXON | LibC.ICRNL);
+        termios.c_iflag &= ~(LibC.BRKINT | LibC.ICRNL | LibC.INPCK | LibC.ISTRIP | LibC.IXON);
         termios.c_oflag &= ~(LibC.OPOST);
+        termios.c_cflag |= (LibC.CS8);
+        termios.c_lflag &= ~(LibC.ECHO | LibC.ICANON | LibC.IEXTEN | LibC.ISIG);
 
         termios.c_cc[LibC.VMIN] = 0;
         termios.c_cc[LibC.VTIME] = 1;
 
-        LibC.INSTANCE.tcsetattr(LibC.SYSTEM_OUT_FD, LibC.TCSA_FLUSH, termios);
-    }
-
-    public void reset() {
-        LibC.INSTANCE.tcsetattr(LibC.SYSTEM_OUT_FD, LibC.TCSA_FLUSH, defaultAttributes);
+        int rc = LibC.INSTANCE.tcsetattr(LibC.STDIN_FILENO, LibC.TCSAFLUSH, termios);
+        if (rc != 0) {
+            exit(rc, "tcsetattr");
+        }
+        logger.info("Terminal set to raw mode");
     }
 
     private LibC.Termios getTermios() {
         LibC.Termios termios = new LibC.Termios();
-        int rc = LibC.INSTANCE.tcgetattr(LibC.SYSTEM_OUT_FD, termios);
+        int rc = LibC.INSTANCE.tcgetattr(LibC.STDIN_FILENO, termios);
+
         if (rc != 0) {
-            System.out.println("Error calling tcgetattr");
-            System.exit(rc);
+            exit(rc, "termios.tcgetattr");
         }
         return termios;
     }
 
-    private LibC.WinSize getWinSize() {
-        final LibC.WinSize winSize = new LibC.WinSize();
-        final int rc = LibC.INSTANCE.ioctl(LibC.SYSTEM_OUT_FD, LibC.TI0CGWINSZ, winSize);
+    private LibC.Winsize getWinsize() {
+        LibC.Winsize winsize = new LibC.Winsize();
+        int rc = LibC.INSTANCE.ioctl(LibC.STDIN_FILENO, LibC.TIOCGWINSZ, winsize);
         if (rc != 0) {
-            System.err.println("Failed to get ioctl. Error code: " + rc);
-            System.exit(1);
+            exit(rc, "ioctl");
         }
-        return winSize;
+        return winsize;
     }
 
     public int getRows() {
@@ -63,28 +69,41 @@ public class Terminal {
     public int getColumns() {
         return this.columns;
     }
+
+    public void reset() {
+        int rc = LibC.INSTANCE.tcsetattr(LibC.STDIN_FILENO, LibC.TCSAFLUSH, defaultAttributes);
+        if (rc != 0) {
+            exit(rc, "termios.tcsetattr");
+        }
+        logger.info("Terminal Reset");
+    }
+
+    private void exit(int err, String method) {
+        if (err != 0) {
+            logger.error("Error calling {}", method);
+        }
+        System.exit(err);
+    }
 }
 
 interface LibC extends Library {
-    int SYSTEM_OUT_FD = 0;
-
-    int ISIG = 1, ICANON = 1, ECHO = 10, TCSA_FLUSH = 2, IXON = 2000,
-            ICRNL = 400, IEXTEN = 100000, OPOST = 1, VMIN = 6, VTIME = 5, TI0CGWINSZ = 0x5413;
-
-    LibC INSTANCE = Native.load("c", LibC.class);
+    LibC INSTANCE = Native.load(Platform.isWindows() ? "msvcrt" : "c", LibC.class);
 
     @Structure.FieldOrder(value = {"c_iflag", "c_oflag", "c_cflag", "c_lflag", "c_cc"})
     class Termios extends Structure {
-        public int c_iflag, c_oflag, c_cflag, c_lflag;
-        public byte[] c_cc = new byte[19];  /* special characters */
+        public int c_iflag;      /* input modes */
+        public int c_oflag;      /* output modes */
+        public int c_cflag;      /* control modes */
+        public int c_lflag;      /* local modes */
+        public byte[] c_cc = new byte[32];
 
-        public static Termios of(Termios t) {
+        public static Termios of(Termios original) {
             Termios copy = new Termios();
-            copy.c_iflag = t.c_iflag;
-            copy.c_oflag = t.c_oflag;
-            copy.c_cflag = t.c_cflag;
-            copy.c_lflag = t.c_lflag;
-            copy.c_cc = t.c_cc.clone();
+            copy.c_iflag = original.c_iflag;
+            copy.c_oflag = original.c_oflag;
+            copy.c_cflag = original.c_cflag;
+            copy.c_lflag = original.c_lflag;
+            copy.c_cc = original.c_cc.clone();
             return copy;
         }
 
@@ -100,24 +119,36 @@ interface LibC extends Library {
     }
 
     @Structure.FieldOrder(value = {"ws_row", "ws_col", "ws_xpixel", "ws_ypixel"})
-    class WinSize extends Structure {
-        public short ws_row, ws_col, ws_xpixel, ws_ypixel;
-
-        @Override
-        public String toString() {
-            return "WinSize {" +
-                    ", ws_row=" + ws_row +
-                    ", ws_col=" + ws_col +
-                    ", ws_xpixel=" + ws_xpixel +
-                    ", ws_ypixel=" + ws_ypixel;
-        }
+    class Winsize extends Structure {
+        public short ws_row;
+        public short ws_col;
+        public short ws_xpixel;
+        public short ws_ypixel;
     }
 
     int tcgetattr(int fd, Termios termios);
-
     int tcsetattr(int fd, int optional_actions, Termios termios);
+    int ioctl(int fd, int cmd, Winsize winsize);
 
-    int ioctl(int fd, int opt, WinSize winSize);
+
+    int STDIN_FILENO = 0;
+
+    int ECHO = 0x0000008;
+    int TCSAFLUSH = 0x2;
+    int ICANON = 0x0000002;
+    int ISIG = 0x0000001;
+    int IXON = 0x0000400;
+    int IEXTEN = 0x0008000;
+    int ICRNL = 0x0000100;
+    int OPOST = 0x0000001;
+    int BRKINT = 0x0000002;
+    int INPCK = 0x0000010;
+    int ISTRIP = 0x0000020;
+    int CS8 = 0x0000030;
+    int VTIME = 5;
+    int VMIN = 6;
+
+    int TIOCGWINSZ = 0x00005413;
 }
 
 

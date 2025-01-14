@@ -1,5 +1,8 @@
 package com.github.aman224;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import java.io.IOException;
 
 import java.nio.file.Files;
@@ -11,6 +14,8 @@ import java.util.Set;
 import java.util.stream.Stream;
 
 public class ContentManager {
+    private static final Logger logger = LogManager.getLogger();
+
     private final int ARROW_UP = 1000;
     private final int ARROW_DOWN = 1001;
     private final int ARROW_RIGHT = 1002;
@@ -25,56 +30,48 @@ public class ContentManager {
             Set.of(ARROW_UP, ARROW_DOWN, ARROW_RIGHT, ARROW_LEFT, HOME, END, PAGE_UP, PAGE_DOWN);
 
     private int cursorX = 0, offsetX = 0, cursorY = 0, offsetY = 0;
-    private int rows = 10, columns = 10;
+    private int rows, columns;
 
+    private List<String> content = new ArrayList<>();
 
-    private String fileName;
-    private List<String> content;
-
-    public ContentManager(String[] args) {
-        if (args.length == 1) {
-            this.fileName = args[0];
-            this.content = readFile();
-        } else {
-            this.content = new ArrayList<>();
-        }
-    }
-
-    public void render() throws IOException {
-        while (true) {
-            scroll();
-            refreshScreen();
-            int key = readKey();
-
-            if (exit(key)) {
-                break;
-            }
-            handleKeyRead(key);
-        }
-    }
-
-    public void configureWindow(int rows, int columns) {
+    public ContentManager(int rows, int columns) {
         this.rows = rows;
         this.columns = columns;
     }
 
-    private List<String> readFile() {
-        Path path = Path.of(fileName);
-        List<String> content = new ArrayList<>();
+    public void render() {
+        StringBuilder builder = new StringBuilder();
 
-        if (Files.exists(path)) {
-            try(Stream<String> stream = Files.lines(path)) {
-                content = stream.toList();
-            } catch (IOException ex) {
-                System.err.print("Error reading file: " + ex.getMessage());
-            }
-        }
+        resetCursorAndClear(builder);
+        renderContent(builder);
+        renderStatusBar(builder);
+        positionCursor(builder);
 
-        return content;
+        System.out.print(builder);
     }
 
-    private int readKey() throws IOException {
+    public void scroll() {
+        if (cursorY >= rows + offsetY) {
+            offsetY = cursorY - rows + 1;
+        } else if (cursorY < offsetY) {
+            offsetY = cursorY;
+        }
+
+        if (cursorX >= columns + offsetX) {
+            offsetX = cursorX - columns + 1;
+        } else if (cursorX < offsetX) {
+            offsetX = cursorX;
+        }
+    }
+
+    public int readKey() throws IOException {
         int key = System.in.read();
+
+        if (key == 'q') {
+            cleanup();
+            return -1;
+        }
+
         if (key != '\033') {
             return key;
         }
@@ -131,34 +128,9 @@ public class ContentManager {
         }
     }
 
-    private void handleKeyRead(int key) {
+    public void handleInput(int key) {
         if (positioningKeys.contains(key)) {
             moveCursor(key);
-        }
-    }
-
-    private void refreshScreen() {
-        StringBuilder builder = new StringBuilder();
-
-        resetCursorAndClear(builder);
-        renderContent(builder);
-        renderStatusBar(builder);
-        positionCursor(builder);
-
-        System.out.print(builder);
-    }
-
-    private void scroll() {
-        if (cursorY >= rows + offsetY) {
-            offsetY = cursorY - rows + 1;
-        } else if (cursorY < offsetY) {
-            offsetY = cursorY;
-        }
-
-        if (cursorX >= columns + offsetX) {
-            offsetX = cursorX - columns + 1;
-        } else if (cursorX < offsetX) {
-            offsetX = cursorX;
         }
     }
 
@@ -269,13 +241,33 @@ public class ContentManager {
         }
     }
 
-    private boolean exit(int key) {
-        if (key == 'q') {
-            System.out.print("\033[2J");
-            System.out.print("\033[H");
+    public void setFile(String file) {
+        this.content = readFile(file);
+    }
 
-            return true;
+    private List<String> readFile(String file) {
+        Path path = Path.of(file);
+        List<String> content = new ArrayList<>();
+
+        if (Files.exists(path)) {
+            try (Stream<String> stream = Files.lines(path)) {
+                content = stream.toList();
+                logger.info("File read successfully");
+            } catch (IOException ex) {
+                logger.error("Error reading file [{}]", file);
+            }
         }
-        return false;
+        return content;
+    }
+
+    public void configureWindow(int rows, int columns) {
+        this.rows = rows;
+        this.columns = columns;
+    }
+
+    public void cleanup() {
+        System.out.print("\033[2J");
+        System.out.print("\033[H");
+        logger.info("Exit code detected. Exiting editor");
     }
 }

@@ -28,7 +28,7 @@ tasks.register<Jar>("uberJar") {
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 
     manifest {
-        attributes("Main-Class" to "com.github.aman224.TextEditor")
+        attributes("Main-Class" to "com.github.aman224.Application")
         attributes("Multi-Release" to "true")
     }
 
