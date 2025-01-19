@@ -38,7 +38,7 @@ public class Terminal {
 
         int rc = LibC.INSTANCE.tcsetattr(LibC.STDIN_FILENO, LibC.TCSAFLUSH, termios);
         if (rc != 0) {
-            exit(rc, "tcsetattr");
+            exit(rc, "termios.tcsetattr");
         }
         logger.info("Terminal set to raw mode");
     }

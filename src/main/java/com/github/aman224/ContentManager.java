@@ -173,7 +173,7 @@ public class ContentManager {
     }
 
     private void moveCursor(int key) {
-        String currentLine = currentLIne();
+        String currentLine = currentLine();
 
         switch (key) {
             case ARROW_UP -> {
@@ -189,11 +189,19 @@ public class ContentManager {
             case ARROW_LEFT -> {
                 if (cursorX > 0) {
                     cursorX--;
+                } else if (cursorY > 0) {
+                    cursorY--;
+                    moveCursorToEndOfLine();
                 }
             }
             case ARROW_RIGHT -> {
-                if (currentLine != null && cursorX < currentLine.length()) {
-                    cursorX++;
+                if (currentLine != null) {
+                    if (cursorX < currentLine.length()) {
+                        cursorX++;
+                    } else if (cursorY <= content.size()) {
+                        cursorY++;
+                        cursorX = 0;
+                    }
                 }
             }
             case PAGE_UP, PAGE_DOWN -> {
@@ -215,17 +223,26 @@ public class ContentManager {
             }
         }
 
-        String newLine = currentLIne();
+        String newLine = currentLine();
         if (newLine != null && cursorX > newLine.length()) {
             cursorX = newLine.length();
         }
     }
 
-    private String currentLIne() {
+    private String currentLine() {
         if (cursorY < content.size()) {
             return content.get(cursorY);
         } else {
             return null;
+        }
+    }
+
+    private void moveCursorToEndOfLine() {
+        if (cursorY >= 0) {
+            String currentLine = content.get(cursorY);
+            cursorX = currentLine.length();
+        } else {
+            cursorX = 0;
         }
     }
 
@@ -258,11 +275,6 @@ public class ContentManager {
             }
         }
         return content;
-    }
-
-    public void configureWindow(int rows, int columns) {
-        this.rows = rows;
-        this.columns = columns;
     }
 
     public void cleanup() {
